@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Interface - Data Profiling App</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            background: white; 
+            padding: 0; 
+            border-radius: 16px; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        /* Context indicator */
+        .context-indicator {
+            background: #e8f4f8;
+            padding: 8px 15px;
+            margin: 10px 20px;
+            border-radius: 20px;
+            border-left: 4px solid #17a2b8;
+            font-size: 0.85rem;
+            color: #0c5460;
+            display: none;
+        }
+        .context-indicator.show {
+            display: block;
+        }
+        
+        .chat-container { 
+            height: 500px; 
+            padding: 20px; 
+            overflow-y: auto; 
+            background: #fafbfc;
+            border-bottom: 1px solid #e1e8ed;
+        }
+        .message { 
+            margin: 15px 0; 
+            padding: 0; 
+            border-radius: 12px; 
+            max-width: 85%;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .user-message { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            margin-left: auto; 
+            padding: 15px 20px;
+            border-bottom-right-radius: 4px;
+        }
+        .user-message-content {
+            font-weight: 500;
+        }
+        .bot-message { 
+            background: white; 
+            color: #2c3e50;
+            margin-right: auto;
+            border: 1px solid #e1e8ed;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .response-header {
+            background: linear-gradient(90deg, #f8f9fa, #e9ecef);
+            padding: 12px 20px;
+            border-bottom: 1px solid #e1e8ed;
+            font-weight: 600;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        /* Context badge */
+        .context-badge {
+            background: #17a2b8;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        
+        .response-content {
+            padding: 20px;
+        }
+        .response-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        .response-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .section-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+        .section-title .emoji {
+            margin-right: 8px;
+            font-size: 1.1rem;
+        }
+        .section-content {
+            color: #495057;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+        .insights-list {
+            margin: 8px 0;
+            padding-left: 0;
+            list-style: none;
+        }
+        .insights-list li {
+            margin-bottom: 6px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .insights-list li:before {
+            content: "•";
+            color: #667eea;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+        .sample-results {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            margin: 8px 0;
+        }
+        .follow-up-questions {
+            background: #fff3cd;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ffc107;
+            margin: 8px 0;
+        }
+        .follow-up-questions ul {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+        .follow-up-questions li {
+            margin-bottom: 4px;
+            color: #856404;
+        }
+        .sql-query { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-left: 4px solid #28a745; 
+            margin: 10px 0; 
+            font-family: 'Courier New', monospace; 
+            font-size: 0.85rem;
+            border-radius: 8px;
+        }
+        .sql-header {
+            font-weight: 600;
+            color: #28a745;
+            margin-bottom: 8px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .input-container { 
+            display: flex; 
+            gap: 10px; 
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e1e8ed;
+        }
+        .input-container input { 
+            flex: 1; 
+            padding: 15px 20px; 
+            border: 2px solid #e1e8ed; 
+            border-radius: 25px; 
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-container input:focus {
+            border-color: #667eea;
+        }
+        .input-container input::placeholder {
+            color: #8e9297;
+        }
+        .btn { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 15px 25px; 
+            border: none; 
+            border-radius: 25px; 
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .loading { 
+            opacity: 0.7;
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+        }
+        .loading .response-header {
+            background: linear-gradient(90deg, #e3f2fd, #bbdefb);
+        }
+        .navigation {
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            border-top: 1px solid #e1e8ed;
+        }
+        .nav-btn {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0 10px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .nav-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+        .nav-btn.primary {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        .nav-btn.primary:hover {
+            background: linear-gradient(135deg, #218838 0%, #1ea080 100%);
+        }
+        .thinking-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #6c757d;
+            font-style: italic;
+        }
+        .thinking-dots {
+            display: inline-flex;
+            gap: 2px;
+        }
+        .thinking-dots span {
+            width: 4px;
+            height: 4px;
+            background: #6c757d;
+            border-radius: 50%;
+            animation: thinking 1.4s infinite;
+        }
+        .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes thinking {
+            0%, 80%, 100% { opacity: 0.3; }
+            40% { opacity: 1; }
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+            margin: 10px 0;
+        }
+        .expandable-section {
+            margin-top: 15px;
+            border-top: 1px solid #f1f3f4;
+            padding-top: 15px;
+        }
+        .expandable-header {
+            cursor: pointer;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .expandable-header:hover {
+            background: #e9ecef;
+        }
+        .expandable-content {
+            display: none;
+            padding: 15px 0;
+        }
+        .expandable-content.expanded {
+            display: block;
+        }
+        .expand-icon {
+            transition: transform 0.2s;
+        }
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+        
+        /* Conversation memory indicator */
+        .memory-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #17a2b8;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .memory-indicator.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Memory indicator -->
+    <div class="memory-indicator" id="memoryIndicator">
+        💭 Remembering conversation
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>💬 Intelligent Data Assistant</h1>
+            <p><strong>Dataset:</strong> {{ table_name }}</p>
+                {% if dataset_mode == 'mimic' %}
+                    <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.9rem;">🏥 MIMIC-III</span>
+                {% elif dataset_mode == 'uploaded' %}
+                    <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.9rem;">📁 Uploaded</span>
+                {% endif %}
+            </p>
+            {% if data_info %}
+            <p style="opacity: 0.9; font-size: 0.95rem;">
+                {{ "{:,}".format(data_info.row_count) }} rows, {{ data_info.column_count }} columns
+                {% if data_info.description %} | {{ data_info.description }}{% endif %}
+            </p>
+            {% endif %}
+            <p>Ask questions about your data in natural language - I'll remember our conversation!</p>
+        </div>
+        
+        <!-- Context indicator -->
+        <div class="context-indicator" id="contextIndicator">
+            🔗 I'm using context from your previous question to answer this one
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            <div class="message bot-message">
+                <div class="response-header">
+                    <span class="emoji">👋</span>
+                    Welcome! I'm your AI data analyst with conversation memory
+                </div>
+                <div class="response-content">
+                    <div class="section-content">
+                        I can help you analyze your data using natural language, and I'll remember our conversation to provide contextual answers. Try asking questions like:
+                        <ul style="margin: 10px 0; color: #495057;">
+                            <li><strong>"Show me the 10 records with lowest BMI"</strong></li>
+                            <li><strong>"What's the average charges for these?"</strong> (referencing previous results)</li>
+                            <li><strong>"How many rows are in the dataset?"</strong></li>
+                            <li><strong>"Find restaurants in Mysore Road"</strong></li>
+                            <li><strong>"Now show me their ratings"</strong> (contextual follow-up)</li>
+                        </ul>
+                        <div style="background: #e8f4f8; padding: 12px; border-radius: 6px; margin-top: 15px;">
+                            <strong>💡 New Feature:</strong> I can now understand when you reference previous results using words like "these", "them", "those", "above", or "previous". This makes our conversation more natural and efficient!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <input type="text" id="questionInput" placeholder="Ask a question about your data..." onkeypress="handleKeyPress(event)">
+            <button class="btn" onclick="sendQuestion()">Send</button>
+        </div>
+        
+        <div class="navigation">
+            <a href="/" class="nav-btn">🏠 Dashboard</a>
+            <a href="/profile" class="nav-btn primary">📊 Data Profile</a>
+            <a href="/visualize" class="nav-btn">📈 Create Charts</a>
+        </div>
+    </div>
+
+    <script>
+        // Conversation memory storage
+        let conversationHistory = [];
+        let isContextAware = false;
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendQuestion();
+            }
+        }
+
+        async function sendQuestion() {
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
+            
+            if (!question) return;
+            
+            // Check if question might need context
+            const contextKeywords = ['these', 'them', 'those', 'above', 'previous', 'last', 'earlier', 'now show', 'also show', 'for these', 'from these', 'same records'];
+            const needsContext = contextKeywords.some(keyword => question.toLowerCase().includes(keyword));
+            
+            if (needsContext && conversationHistory.length > 0) {
+                showContextIndicator();
+                showMemoryIndicator();
+            }
+            
+            // Add user message to chat
+            addUserMessage(question);
+            input.value = '';
+            
+            // Add loading message
+            const loadingId = addLoadingMessage();
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        question: question,
+                        conversation_context: conversationHistory.slice(-3) // Send last 3 interactions
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Remove loading message
+                document.getElementById(loadingId).remove();
+                
+                if (response.ok) {
+                    // Add to conversation history
+                    if (data.current_context) {
+                        conversationHistory.push(data.current_context);
+                        
+                        // Keep only last 5 interactions to prevent memory bloat
+                        if (conversationHistory.length > 5) {
+                            conversationHistory = conversationHistory.slice(-5);
+                        }
+                    }
+                    
+                    addBotMessage(data, question, data.context_used || false);
+                    
+                    if (data.context_used) {
+                        hideMemoryIndicator();
+                    }
+                } else {
+                    addErrorMessage(data.error || 'Something went wrong');
+                }
+                
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                addErrorMessage(`Network error: ${error.message}`);
+            }
+            
+            // Hide context indicator after a few seconds
+            setTimeout(() => {
+                hideContextIndicator();
+            }, 3000);
+        }
+
+        function showContextIndicator() {
+            const indicator = document.getElementById('contextIndicator');
+            indicator.classList.add('show');
+        }
+
+        function hideContextIndicator() {
+            const indicator = document.getElementById('contextIndicator');
+            indicator.classList.remove('show');
+        }
+
+        function showMemoryIndicator() {
+            const indicator = document.getElementById('memoryIndicator');
+            indicator.classList.add('show');
+        }
+
+        function hideMemoryIndicator() {
+            setTimeout(() => {
+                const indicator = document.getElementById('memoryIndicator');
+                indicator.classList.remove('show');
+            }, 1000);
+        }
+
+        function addUserMessage(content) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+            messageDiv.innerHTML = `<div class="user-message-content">${escapeHtml(content)}</div>`;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addBotMessage(data, originalQuestion, contextUsed = false) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot-message';
+            
+            let responseHtml = `
+                <div class="response-header">
+                    <div>
+                        <span class="emoji">🤖</span>
+                        Analysis Complete
+                    </div>
+                    ${contextUsed ? '<div class="context-badge">Using Context</div>' : ''}
+                </div>
+                <div class="response-content">
+            `;
+
+            // Parse the structured response if available
+            if (data.structured_response) {
+                const structured = data.structured_response;
+                
+                // Answer section
+                if (structured.answer) {
+                    responseHtml += `
+                        <div class="response-section">
+                            <div class="section-title">
+                                <span class="emoji">📊</span>Answer
+                            </div>
+                            <div class="section-content">${formatContent(structured.answer)}</div>
+                        </div>
+                    `;
+                }
+
+                // How it was found
+                if (structured.explanation) {
+                    responseHtml += `
+                        <div class="response-section">
+                            <div class="section-title">
+                                <span class="emoji">🔍</span>How I found this
+                            </div>
+                            <div class="section-content">${formatContent(structured.explanation)}</div>
+                        </div>
+                    `;
+                }
+
+                // Key insights
+                if (structured.insights && structured.insights.length > 0) {
+                    responseHtml += `
+                        <div class="response-section">
+                            <div class="section-title">
+                                <span class="emoji">💡</span>Key Insights
+                            </div>
+                            <div class="section-content">
+                                <ul class="insights-list">
+                                    ${structured.insights.map(insight => `<li>${formatContent(insight)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Context
+                if (structured.context) {
+                    responseHtml += `
+                        <div class="response-section">
+                            <div class="section-title">
+                                <span class="emoji">📋</span>Context
+                            </div>
+                            <div class="section-content">${formatContent(structured.context)}</div>
+                        </div>
+                    `;
+                }
+
+                // Sample results
+                if (structured.data_sample && structured.data_sample.data) {
+                    const sample = structured.data_sample;
+                    responseHtml += `
+                        <div class="response-section">
+                            <div class="section-title">
+                                <span class="emoji">📈</span>Sample Results
+                            </div>
+                            <div class="section-content">
+                                <em>Showing ${sample.showing} of ${sample.total_rows} results:</em>
+                                <div class="sample-results">
+                    `;
+                    
+                    sample.data.slice(0, 3).forEach((row, i) => {
+                        const rowText = Object.entries(row)
+                            .filter(([key, value]) => value !== null)
+                            .map(([key, value]) => `${key}: ${value}`)
+                            .join(', ');
+                        responseHtml += `${i + 1}. ${rowText}<br>`;
+                    });
+                    
+                    responseHtml += `</div></div></div>`;
+                }
+
+                // Follow-up suggestions
+                if (structured.follow_up_suggestions && structured.follow_up_suggestions.length > 0) {
+                    responseHtml += `
+                        <div class="response-section">
+                            <div class="section-title">
+                                <span class="emoji">🤔</span>What's next?
+                            </div>
+                            <div class="section-content">
+                                <div class="follow-up-questions">
+                                    <ul>
+                                        ${structured.follow_up_suggestions.map(suggestion => `<li>${formatContent(suggestion)}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Technical details (expandable)
+                if (data.sql_query) {
+                    responseHtml += `
+                        <div class="expandable-section">
+                            <div class="expandable-header" onclick="toggleExpandable(this)">
+                                <span><strong>🔧 Technical Details</strong></span>
+                                <span class="expand-icon">▼</span>
+                            </div>
+                            <div class="expandable-content">
+                                <div class="sql-query">
+                                    <div class="sql-header">SQL Query Used:</div>
+                                    ${escapeHtml(data.sql_query)}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                // Fallback to simple response
+                responseHtml += `
+                    <div class="response-section">
+                        <div class="section-content">${formatContent(data.response)}</div>
+                    </div>
+                `;
+                
+                if (data.sql_query) {
+                    responseHtml += `
+                        <div class="sql-query">
+                            <div class="sql-header">SQL Query:</div>
+                            ${escapeHtml(data.sql_query)}
+                        </div>
+                    `;
+                }
+            }
+
+            responseHtml += '</div>'; // Close response-content
+
+            messageDiv.innerHTML = responseHtml;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addLoadingMessage() {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            const messageId = 'loading_' + Date.now();
+            
+            messageDiv.id = messageId;
+            messageDiv.className = 'message bot-message loading';
+            messageDiv.innerHTML = `
+                <div class="response-header">
+                    <div class="thinking-indicator">
+                        <span class="emoji">🤔</span>
+                        <span>Analyzing your data${conversationHistory.length > 0 ? ' with conversation context' : ''}</span>
+                        <div class="thinking-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="response-content">
+                    <div class="section-content">Processing your question and querying the database...</div>
+                </div>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            return messageId;
+        }
+
+        function addErrorMessage(error) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot-message';
+            messageDiv.innerHTML = `
+                <div class="response-header">
+                    <span class="emoji">❌</span>
+                    Error
+                </div>
+                <div class="response-content">
+                    <div class="error-message">
+                        <strong>Something went wrong:</strong> ${escapeHtml(error)}
+                    </div>
+                    <div class="section-content" style="margin-top: 15px;">
+                        <strong>Try:</strong>
+                        <ul>
+                            <li>Rephrasing your question</li>
+                            <li>Using exact column names from your dataset</li>
+                            <li>Asking a simpler question</li>
+                            <li>If referencing previous results, be more specific</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function formatContent(content) {
+            if (!content) return '';
+            
+            // Convert markdown-style formatting to HTML
+            return content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code style="background: #f1f3f4; padding: 2px 4px; border-radius: 3px; font-family: monospace;">$1</code>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleExpandable(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.expand-icon');
+            
+            content.classList.toggle('expanded');
+            icon.classList.toggle('expanded');
+        }
+        
+        // Focus on input when page loads
+        document.getElementById('questionInput').focus();
+        
+        // Show conversation count in console for debugging
+        console.log('Contextual Chat Interface Loaded - Conversation memory active');
+    </script>
+</body>
+</html>

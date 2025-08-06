@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MIMIC-III Tables - Data Profiling App</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            background: white; 
+            padding: 0; 
+            border-radius: 16px; 
+            max-width: 1200px; 
+            margin: 0 auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        .content {
+            padding: 2rem;
+        }
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .table-card {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .table-card:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+        }
+        .table-card.selected {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        .table-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        .table-description {
+            color: #6c757d;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+        .table-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+        .btn {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0 10px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+        .btn.primary {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        .btn.primary:hover {
+            background: linear-gradient(135deg, #218838 0%, #1ea080 100%);
+        }
+        .navigation {
+            padding: 2rem;
+            text-align: center;
+            background: #f8f9fa;
+            border-top: 1px solid #e1e8ed;
+        }
+        .current-selection {
+            background: #e8f4f8;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #17a2b8;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #6c757d;
+        }
+        .empty-state h3 {
+            color: #495057;
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .tables-grid {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 MIMIC-III Clinical Database Tables</h1>
+            <p>Select a table to begin your analysis</p>
+        </div>
+        
+        <div class="content">
+            {% if current_table %}
+            <div class="current-selection">
+                <strong>📊 Currently Selected:</strong> {{ current_table.upper() }}
+                <br>
+                <a href="/" style="color: #0c5460; text-decoration: none;">← Back to Dashboard</a>
+            </div>
+            {% endif %}
+            
+            {% if mimic_tables %}
+            <p><strong>{{ mimic_tables|length }} tables available</strong> - Click on any table to select it for analysis:</p>
+            
+            <div class="tables-grid">
+                {% for table in mimic_tables %}
+                <div class="table-card" onclick="selectTable('{{ table.table_name }}')"
+                     {% if current_table == table.table_name %}class="table-card selected"{% endif %}>
+                    <div class="table-name">{{ table.table_name.upper() }}</div>
+                    <div class="table-description">{{ table.description }}</div>
+                    <div class="table-stats">
+                        <span>{{ "{:,}".format(table.row_count) }} rows</span>
+                        <span>{{ table.column_count }} columns</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <h3>No MIMIC-III Tables Found</h3>
+                <p>The MIMIC-III demo data hasn't been loaded yet.</p>
+                <a href="/" class="btn primary">← Back to Load Data</a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="navigation">
+            <a href="/" class="btn">🏠 Dashboard</a>
+            {% if current_table %}
+            <a href="/profile" class="btn primary">📊 Profile Report</a>
+            <a href="/chat" class="btn primary">💬 Chat with Data</a>
+            <a href="/visualize" class="btn primary">📈 Create Charts</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function selectTable(tableName) {
+            window.location.href = `/select-table/${tableName}`;
+        }
+    </script>
+</body>
+</html>

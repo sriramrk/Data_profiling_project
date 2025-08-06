@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Visualization - Data Profiling App</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 8px; 
+            max-width: 1400px; 
+            margin: 0 auto; 
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        /* FIXED: Better layout structure */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .controls-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .controls {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            min-width: 350px;
+            flex: 0 0 auto;
+        }
+        
+        .suggestions-panel {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        /* FIXED: Full width chart area */
+        .chart-section {
+            width: 100%;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            /* FIXED: Explicit dimensions for better chart display */
+            min-height: 500px;
+            width: 100%;
+        }
+        
+        /* FIXED: Chart area styling */
+        #chartArea {
+            width: 100%;
+            height: 500px;
+            min-height: 500px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px 8px 8px 0;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn:hover { 
+            background: #0056b3; 
+            transform: translateY(-1px);
+        }
+        .btn-success { 
+            background: #28a745; 
+        }
+        .btn-success:hover { 
+            background: #218838; 
+        }
+        .btn-secondary { 
+            background: #6c757d; 
+        }
+        .btn-secondary:hover { 
+            background: #545b62; 
+        }
+        
+        .suggestions {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+            border-left: 4px solid #17a2b8;
+        }
+        .suggestion-card {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .suggestion-card:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+            transform: translateY(-2px);
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #c3e6cb;
+        }
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        .insights {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        .insights h4 {
+            margin-top: 0;
+            color: #856404;
+            font-size: 1.1rem;
+        }
+        .insights ul {
+            margin-bottom: 0;
+        }
+        .insights li {
+            margin-bottom: 8px;
+        }
+        
+        /* FIXED: Responsive design */
+        @media (max-width: 1200px) {
+            .controls-section {
+                flex-direction: column;
+            }
+            .controls {
+                min-width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+            .header {
+                padding: 1.5rem;
+            }
+            #chartArea {
+                height: 400px;
+                min-height: 400px;
+            }
+            .chart-container {
+                min-height: 450px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Create Custom Visualizations</h1>
+            <p><strong>Dataset:</strong> {{ table_name }}
+                {% if dataset_mode == 'mimic' %}
+                    <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.9rem;">🏥 MIMIC-III</span>
+                {% elif dataset_mode == 'uploaded' %}
+                    <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.9rem;">📁 Uploaded</span>
+                {% endif %}
+            </p>
+            <p>Build interactive charts to explore your data</p>
+        </div>
+
+        <!-- Navigation -->
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <a href="/" class="btn btn-secondary">← Back to Dashboard</a>
+            <a href="/chat" class="btn">💬 Chat with Data</a>
+            <a href="/profile" class="btn">📊 View Profile Report</a>
+        </div>
+
+        <div class="main-content">
+            <!-- Controls Section -->
+            <div class="controls-section">
+                <!-- Chart Configuration Panel -->
+                <div class="controls">
+                    <h3>🎛️ Chart Configuration</h3>
+                    
+                    <div class="form-group">
+                        <label for="chartType">Chart Type:</label>
+                        <select id="chartType" class="form-control">
+                            <option value="">Select a chart type...</option>
+                            <option value="bar">Bar Chart</option>
+                            <option value="line">Line Chart</option>
+                            <option value="scatter">Scatter Plot</option>
+                            <option value="histogram">Histogram</option>
+                            <option value="box">Box Plot</option>
+                            <option value="pie">Pie Chart</option>
+                            <option value="heatmap">Correlation Heatmap</option>
+                            <option value="violin">Violin Plot</option>
+                            <option value="area">Area Chart</option>
+                            <option value="bubble">Bubble Chart</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="xAxis">X-Axis Column:</label>
+                        <select id="xAxis" class="form-control">
+                            <option value="">Loading columns...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="yAxis">Y-Axis Column (if required):</label>
+                        <select id="yAxis" class="form-control">
+                            <option value="">Select Y-axis column...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="colorBy">Color By (optional):</label>
+                        <select id="colorBy" class="form-control">
+                            <option value="">No color grouping</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="chartTitle">Chart Title:</label>
+                        <input type="text" id="chartTitle" class="form-control" placeholder="Enter custom title (optional)">
+                    </div>
+
+                    <button onclick="createChart()" class="btn btn-success">🎨 Create Chart</button>
+                    <button onclick="loadSuggestions()" class="btn">🤖 Get AI Suggestions</button>
+                </div>
+
+                <!-- AI Suggestions Panel -->
+                <div class="suggestions-panel">
+                    <div id="suggestionsPanel" class="suggestions" style="display: none;">
+                        <h4>🤖 AI Chart Suggestions</h4>
+                        <p>Based on your data characteristics, here are recommended visualizations:</p>
+                        <div id="suggestionsList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FIXED: Full-width Chart Section -->
+            <div class="chart-section">
+                <div class="chart-container">
+                    <div id="chartArea">
+                        <div class="loading">
+                            <h3>📈 Your Chart Will Appear Here</h3>
+                            <p>Configure your chart settings and click "Create Chart" to visualize your data.</p>
+                            <br>
+                            <p><strong>Tips:</strong></p>
+                            <ul style="text-align: left; display: inline-block;">
+                                <li>Start with AI suggestions for best results</li>
+                                <li>Histograms work great for single numeric columns</li>
+                                <li>Scatter plots show relationships between two numeric variables</li>
+                                <li>Bar charts compare categories</li>
+                                <li>Box plots show distribution and outliers</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Insights -->
+                <div id="chartInsights" class="insights" style="display: none;">
+                    <h4>💡 Chart Insights</h4>
+                    <ul id="insightsList"></ul>
+                </div>
+            </div>
+
+            <!-- Dataset Info -->
+            <div id="datasetInfo" class="controls" style="display: none;">
+                <h4>📋 Dataset Information</h4>
+                <div id="datasetDetails"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let datasetInfo = null;
+        let columnInfo = [];
+
+        // Load dataset information on page load
+        window.onload = function() {
+            loadDatasetInfo();
+        };
+
+        async function loadDatasetInfo() {
+            try {
+                const response = await fetch('/api/dataset-info');
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                datasetInfo = data;
+                columnInfo = data.columns;
+                populateColumnDropdowns();
+                displayDatasetInfo();
+                
+            } catch (error) {
+                showError(`Error loading dataset info: ${error.message}`);
+            }
+        }
+
+        function populateColumnDropdowns() {
+            const xAxis = document.getElementById('xAxis');
+            const yAxis = document.getElementById('yAxis');
+            const colorBy = document.getElementById('colorBy');
+            
+            // Clear existing options
+            xAxis.innerHTML = '<option value="">Select X-axis column...</option>';
+            yAxis.innerHTML = '<option value="">Select Y-axis column...</option>';
+            colorBy.innerHTML = '<option value="">No color grouping</option>';
+            
+            // Populate with columns
+            columnInfo.forEach(col => {
+                const option1 = new Option(col.name, col.name);
+                const option2 = new Option(col.name, col.name);
+                const option3 = new Option(col.name, col.name);
+                
+                xAxis.appendChild(option1);
+                yAxis.appendChild(option2);
+                colorBy.appendChild(option3);
+            });
+        }
+
+        function displayDatasetInfo() {
+            const infoDiv = document.getElementById('datasetInfo');
+            const detailsDiv = document.getElementById('datasetDetails');
+            
+            const numericCols = columnInfo.filter(col => col.category === 'numeric').length;
+            const categoricalCols = columnInfo.filter(col => col.category === 'categorical').length;
+            
+            detailsDiv.innerHTML = `
+                <p><strong>Total Rows:</strong> ${datasetInfo.row_count.toLocaleString()}</p>
+                <p><strong>Total Columns:</strong> ${columnInfo.length}</p>
+                <p><strong>Numeric Columns:</strong> ${numericCols}</p>
+                <p><strong>Categorical Columns:</strong> ${categoricalCols}</p>
+                <p><strong>Sample Data:</strong> ${datasetInfo.sample_data.length} rows loaded</p>
+            `;
+            
+            infoDiv.style.display = 'block';
+        }
+
+        async function loadSuggestions() {
+            try {
+                showLoading('Loading AI suggestions...');
+                
+                const response = await fetch('/api/chart-suggestions');
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                displaySuggestions(data.suggested_charts || []);
+                
+            } catch (error) {
+                showError(`Error loading suggestions: ${error.message}`);
+            }
+        }
+
+        function displaySuggestions(suggestions) {
+            const panel = document.getElementById('suggestionsPanel');
+            const list = document.getElementById('suggestionsList');
+            
+            if (suggestions.length === 0) {
+                list.innerHTML = '<p>No suggestions available. This might be because the AI API is not configured.</p>';
+                panel.style.display = 'block';
+                return;
+            }
+            
+            list.innerHTML = '';
+            
+            suggestions.forEach((suggestion, index) => {
+                const card = document.createElement('div');
+                card.className = 'suggestion-card';
+                card.innerHTML = `
+                    <h5>${suggestion.title || `${suggestion.chart_type} Chart`}</h5>
+                    <p><strong>Chart Type:</strong> ${suggestion.chart_type}</p>
+                    <p><strong>X-Axis:</strong> ${suggestion.x_axis || 'N/A'}</p>
+                    <p><strong>Y-Axis:</strong> ${suggestion.y_axis || 'N/A'}</p>
+                    <p><strong>Why this chart:</strong> ${suggestion.explanation || 'No explanation provided'}</p>
+                    <p><strong>Insights:</strong> ${suggestion.insights || 'No insights provided'}</p>
+                `;
+                
+                card.onclick = () => applySuggestion(suggestion);
+                list.appendChild(card);
+            });
+            
+            panel.style.display = 'block';
+        }
+
+        function applySuggestion(suggestion) {
+            document.getElementById('chartType').value = suggestion.chart_type || '';
+            document.getElementById('xAxis').value = suggestion.x_axis || '';
+            document.getElementById('yAxis').value = suggestion.y_axis || '';
+            document.getElementById('chartTitle').value = suggestion.title || '';
+            
+            // Auto-create the suggested chart
+            createChart();
+        }
+
+        async function createChart() {
+            const chartType = document.getElementById('chartType').value;
+            const xAxis = document.getElementById('xAxis').value;
+            const yAxis = document.getElementById('yAxis').value;
+            const colorBy = document.getElementById('colorBy').value;
+            const title = document.getElementById('chartTitle').value;
+            
+            if (!chartType) {
+                showError('Please select a chart type');
+                return;
+            }
+            
+            if (!xAxis) {
+                showError('Please select an X-axis column');
+                return;
+            }
+            
+            try {
+                showLoading('Creating your chart...');
+                
+                const config = {
+                    chart_type: chartType,
+                    x_axis: xAxis,
+                    y_axis: yAxis || null,
+                    color: colorBy || null,
+                    title: title || null
+                };
+                
+                const response = await fetch('/api/create-chart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                displayChart(data);
+                
+            } catch (error) {
+                showError(`Error creating chart: ${error.message}`);
+            }
+        }
+
+        function displayChart(chartData) {
+            const chartArea = document.getElementById('chartArea');
+            
+            try {
+                const plotlyData = JSON.parse(chartData.chart_json);
+                
+                // FIXED: Better Plotly configuration with explicit sizing
+                Plotly.newPlot('chartArea', plotlyData.data, plotlyData.layout, {
+                    responsive: true,
+                    displayModeBar: true,
+                    modeBarButtonsToAdd: ['downloadImage'],
+                    // FIXED: Explicit size configuration
+                    autosize: true,
+                    showLink: false,
+                    displaylogo: false
+                });
+                
+                // FIXED: Force resize after plot creation
+                setTimeout(() => {
+                    Plotly.Plots.resize('chartArea');
+                }, 100);
+                
+                // Display insights
+                if (chartData.insights && chartData.insights.length > 0) {
+                    const insightsDiv = document.getElementById('chartInsights');
+                    const insightsList = document.getElementById('insightsList');
+                    
+                    insightsList.innerHTML = '';
+                    chartData.insights.forEach(insight => {
+                        const li = document.createElement('li');
+                        li.textContent = insight;
+                        insightsList.appendChild(li);
+                    });
+                    
+                    insightsDiv.style.display = 'block';
+                } else {
+                    document.getElementById('chartInsights').style.display = 'none';
+                }
+                
+                showSuccess(`✅ Chart created successfully! Showing ${chartData.data_summary.rows_plotted} data points.`);
+                
+            } catch (error) {
+                showError(`Error displaying chart: ${error.message}`);
+            }
+        }
+
+        function showLoading(message) {
+            const chartArea = document.getElementById('chartArea');
+            chartArea.innerHTML = `<div class="loading"><h3>⏳ ${message}</h3></div>`;
+        }
+
+        function showError(message) {
+            const chartArea = document.getElementById('chartArea');
+            chartArea.innerHTML = `<div class="error"><strong>❌ Error:</strong> ${message}</div>`;
+        }
+
+        function showSuccess(message) {
+            // Create temporary success message
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.innerHTML = message;
+            
+            const chartContainer = document.querySelector('.chart-container');
+            chartContainer.insertBefore(successDiv, chartContainer.firstChild);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                successDiv.remove();
+            }, 5000);
+        }
+
+        // Auto-update Y-axis requirements based on chart type
+        document.getElementById('chartType').addEventListener('change', function() {
+            const chartType = this.value;
+            const yAxisGroup = document.getElementById('yAxis').parentElement;
+            const yAxisLabel = yAxisGroup.querySelector('label');
+            
+            if (['scatter', 'line', 'bubble', 'area'].includes(chartType)) {
+                yAxisLabel.textContent = 'Y-Axis Column (required):';
+                yAxisLabel.style.color = '#dc3545';
+            } else if (['bar', 'box', 'violin'].includes(chartType)) {
+                yAxisLabel.textContent = 'Y-Axis Column (optional):';
+                yAxisLabel.style.color = '#495057';
+            } else {
+                yAxisLabel.textContent = 'Y-Axis Column (if required):';
+                yAxisLabel.style.color = '#495057';
+            }
+        });
+
+        // FIXED: Handle window resize for better chart responsiveness
+        window.addEventListener('resize', function() {
+            if (document.getElementById('chartArea').children.length > 0 && 
+                !document.getElementById('chartArea').querySelector('.loading')) {
+                setTimeout(() => {
+                    Plotly.Plots.resize('chartArea');
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Complete Profile Report - Data Profiling App</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f8f9fa; }
+        .container { background: white; padding: 30px; border-radius: 12px; max-width: 1400px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2.5rem; border-radius: 12px; margin-bottom: 2rem; text-align: center; }
+        .section { background: #ffffff; padding: 2rem; margin-bottom: 2rem; border-radius: 10px; border: 1px solid #e9ecef; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin: 1.5rem 0; }
+        .stat-card { background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); padding: 1.5rem; border-radius: 8px; text-align: center; border: 1px solid #dee2e6; transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .stat-value { font-size: 2.2rem; font-weight: 700; color: #2c3e50; margin-bottom: 0.5rem; }
+        .stat-label { color: #6c757d; font-size: 0.9rem; font-weight: 500; }
+        .stat-explanation { color: #495057; font-size: 0.8rem; margin-top: 0.5rem; font-style: italic; }
+        .btn { background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; margin: 8px; font-weight: 500; transition: all 0.2s; }
+        .btn:hover { background: #0056b3; transform: translateY(-1px); }
+        .btn-success { background: #28a745; } .btn-success:hover { background: #218838; }
+        .btn-warning { background: #ffc107; color: #212529; } .btn-warning:hover { background: #e0a800; }
+        .btn-secondary { background: #6c757d; } .btn-secondary:hover { background: #545b62; }
+        .table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; background: white; border-radius: 8px; overflow: hidden; }
+        .table th, .table td { padding: 1rem; text-align: left; border-bottom: 1px solid #dee2e6; }
+        .table th { background: #f8f9fa; font-weight: 600; color: #495057; }
+        .table tbody tr:hover { background: #f8f9fa; }
+        .quality-indicator { display: inline-block; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+        .quality-excellent { background: #d4edda; color: #155724; }
+        .quality-good { background: #cce5ff; color: #004085; }
+        .quality-warning { background: #fff3cd; color: #856404; }
+        .quality-poor { background: #f8d7da; color: #721c24; }
+        .column-card { background: #ffffff; padding: 1.5rem; margin: 1rem 0; border-radius: 8px; border: 1px solid #e9ecef; border-left: 4px solid #007bff; }
+        .column-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .column-title { font-size: 1.3rem; font-weight: 600; color: #2c3e50; }
+        .column-type { background: #e9ecef; color: #495057; padding: 0.3rem 0.8rem; border-radius: 15px; font-size: 0.8rem; font-weight: 500; }
+        .progress-bar { background: #e9ecef; height: 8px; border-radius: 4px; overflow: hidden; margin: 0.5rem 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #28a745, #20c997); transition: width 0.3s ease; }
+        .alert { padding: 1.2rem; margin: 1rem 0; border-radius: 8px; border-left: 4px solid; }
+        .alert-info { background: #d1ecf1; color: #0c5460; border-color: #17a2b8; }
+        .alert-warning { background: #fff3cd; color: #856404; border-color: #ffc107; }
+        .alert-success { background: #d4edda; color: #155724; border-color: #28a745; }
+        .explanation-box { background: #f8f9fa; padding: 1.2rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid #17a2b8; }
+        .explanation-title { font-weight: 600; color: #0c5460; margin-bottom: 0.5rem; }
+        .visualization-container { background: white; padding: 2rem; border-radius: 10px; margin: 1.5rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid #e9ecef; }
+        .viz-title { font-size: 1.4rem; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem; }
+        .viz-description { color: #6c757d; margin-bottom: 1.5rem; line-height: 1.5; }
+        .insights-box { background: #fff8e1; padding: 1.2rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid #ffb300; }
+        .insights-title { font-weight: 600; color: #e65100; margin-bottom: 0.8rem; }
+        .correlation-cell { text-align: center; font-weight: 500; }
+        .correlation-strong { background: #ffcdd2; color: #d32f2f; }
+        .correlation-moderate { background: #fff3e0; color: #f57c00; }
+        .correlation-weak { background: #e8f5e8; color: #388e3c; }
+        .metric-highlight { background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 0.3rem 0.8rem; border-radius: 15px; font-weight: 600; }
+        
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .container { padding: 15px; margin: 10px; }
+            .column-header { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Comprehensive Data Profile Report</h1>
+            <p><strong>Dataset:</strong> {{ table_name or "Unknown" }}
+                {% if dataset_mode == 'mimic' %}
+                    <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.9rem;">🏥 MIMIC-III Clinical Data</span>
+                {% elif dataset_mode == 'uploaded' %}
+                    <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.9rem;">📁 User Uploaded Data</span>
+                {% endif %}
+            </p>
+            {% if profile_data and profile_data.get('generated_at') %}
+            <p><strong>Generated:</strong> {{ profile_data.generated_at[:19].replace('T', ' ') }}</p>
+            {% endif %}
+            <p style="opacity: 0.9;">Complete statistical analysis with visualizations and recommendations</p>
+        </div>
+
+
+        <!-- Navigation -->
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <a href="/" class="btn btn-secondary">🏠 Dashboard</a>
+            <a href="/chat" class="btn btn-success">💬 Chat with Data</a>
+            <a href="/visualize" class="btn btn-warning">📊 Create Charts</a>
+        </div>
+
+        {% if profile_data and 'error' in profile_data %}
+        <div class="alert alert-warning">
+            <strong>❌ Error:</strong> {{ profile_data.error }}
+        </div>
+        {% elif profile_data %}
+
+        <!-- Dataset Overview -->
+        {% set overview = profile_data.get('dataset_overview', {}) %}
+        {% if overview %}
+        <div class="section">
+            <h2>📋 Dataset Overview & Summary</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ "{:,}".format(overview.get('total_rows', 0)) }}</div>
+                    <div class="stat-label">Total Rows</div>
+                    <div class="stat-explanation">Number of records in dataset</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ overview.get('total_columns', 0) }}</div>
+                    <div class="stat-label">Total Columns</div>
+                    <div class="stat-explanation">Number of variables/features</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ overview.get('memory_usage_mb', 0) }}</div>
+                    <div class="stat-label">Memory (MB)</div>
+                    <div class="stat-explanation">Storage space required</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ overview.get('size_category', 'Unknown') }}</div>
+                    <div class="stat-label">Dataset Size</div>
+                    <div class="stat-explanation">{{ overview.get('size_description', 'Size classification') }}</div>
+                </div>
+            </div>
+            
+            {% set quality_assessment = overview.get('quality_assessment', {}) %}
+            {% if quality_assessment %}
+            <div class="explanation-box">
+                <div class="explanation-title">🎯 Overall Quality Assessment</div>
+                <p><span class="metric-highlight">{{ quality_assessment.get('grade', 'N/A') }}</span> - {{ quality_assessment.get('description', 'No description available') }}</p>
+                <p><strong>Recommendation:</strong> {{ quality_assessment.get('recommendation', 'No recommendation available') }}</p>
+            </div>
+            {% endif %}
+            
+            <h3>📝 Column Inventory ({{ overview.get('total_columns', 0) }} total):</h3>
+            {% set column_names = overview.get('column_names', []) %}
+            {% if column_names %}
+            <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem; line-height: 1.4;">
+                {{ column_names | join(', ') }}
+            </div>
+            {% else %}
+            <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px;">
+                No column information available
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Smart Visualizations -->
+        {% set visualizations = profile_data.get('smart_visualizations', []) %}
+        {% if visualizations %}
+        <div class="section">
+            <h2>🎨 Automated Data Visualizations</h2>
+            <p style="color: #6c757d; margin-bottom: 1.5rem;">Charts automatically generated based on your data characteristics and patterns.</p>
+            
+            {% for viz in visualizations %}
+            <div class="visualization-container">
+                <div class="viz-title">{{ viz.get('title', 'Visualization') }}</div>
+                <div class="viz-description">{{ viz.get('description', 'No description available') }}</div>
+                
+                <div id="viz-{{ loop.index }}" style="width: 100%; height: 450px;"></div>
+                
+                {% set insights = viz.get('insights', []) %}
+                {% if insights %}
+                <div class="insights-box">
+                    <div class="insights-title">💡 Key Insights from this Chart:</div>
+                    <ul style="margin: 0;">
+                        {% for insight in insights %}
+                        <li style="margin-bottom: 0.5rem;">{{ insight }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% set chart_json = viz.get('chart_json') %}
+            {% if chart_json %}
+            <script>
+                try {
+                    const plotData{{ loop.index }} = JSON.parse('{{ chart_json | safe }}');
+                    Plotly.newPlot('viz-{{ loop.index }}', plotData{{ loop.index }}.data, plotData{{ loop.index }}.layout, {
+                        responsive: true,
+                        displayModeBar: true,
+                        modeBarButtonsToAdd: ['downloadImage']
+                    });
+                } catch (error) {
+                    console.error('Visualization error:', error);
+                    document.getElementById('viz-{{ loop.index }}').innerHTML = '<div class="alert alert-warning">⚠️ Error loading visualization</div>';
+                }
+            </script>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Data Quality Assessment -->
+        {% set data_quality = profile_data.get('data_quality', {}) %}
+        {% if data_quality %}
+        <div class="section">
+            <h2>🔍 Data Quality Assessment</h2>
+            
+            {% set completeness = data_quality.get('overall_completeness', 0) %}
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">
+                        {% if completeness >= 95 %}
+                        <span class="quality-indicator quality-excellent">{{ completeness }}%</span>
+                        {% elif completeness >= 85 %}
+                        <span class="quality-indicator quality-good">{{ completeness }}%</span>
+                        {% elif completeness >= 70 %}
+                        <span class="quality-indicator quality-warning">{{ completeness }}%</span>
+                        {% else %}
+                        <span class="quality-indicator quality-poor">{{ completeness }}%</span>
+                        {% endif %}
+                    </div>
+                    <div class="stat-label">Data Completeness</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ completeness }}%"></div>
+                    </div>
+                    <div class="stat-explanation">Percentage of non-missing values</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value">{{ "{:,}".format(data_quality.get('total_missing_cells', 0)) }}</div>
+                    <div class="stat-label">Missing Values</div>
+                    <div class="stat-explanation">Total empty/null cells</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-value">{{ data_quality.get('columns_with_nulls', 0) }}</div>
+                    <div class="stat-label">Columns with Missing Data</div>
+                    <div class="stat-explanation">Out of {{ overview.get('total_columns', 0) }} total columns</div>
+                </div>
+                
+                {% set quality_score = data_quality.get('quality_score', {}) %}
+                {% if quality_score %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ quality_score.get('grade', 'N/A') }}</div>
+                    <div class="stat-label">Quality Grade</div>
+                    <div class="stat-explanation">{{ quality_score.get('description', 'No description') }}</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Quality Issues -->
+            {% set constant_columns = data_quality.get('constant_columns', []) %}
+            {% if constant_columns %}
+            <div class="alert alert-warning">
+                <strong>⚠️ Constant Columns Detected ({{ constant_columns | length }}):</strong>
+                <p style="margin: 0.5rem 0;">These columns have the same value for all rows and provide no analytical value:</p>
+                {% for col in constant_columns %}
+                <div style="margin: 0.5rem 0; padding: 0.5rem; background: rgba(255,255,255,0.7); border-radius: 4px;">
+                    <strong>{{ col.get('column', 'Unknown') }}</strong>: "{{ col.get('value', 'N/A') }}" <em>({{ col.get('recommendation', 'No recommendation') }})</em>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% set high_missing_columns = data_quality.get('high_missing_columns', []) %}
+            {% if high_missing_columns %}
+            <div class="alert alert-warning">
+                <strong>🚨 High Missing Data Columns ({{ high_missing_columns | length }}):</strong>
+                {% for col in high_missing_columns %}
+                <div style="margin: 0.5rem 0;">
+                    <strong>{{ col.get('column', 'Unknown') }}</strong>: {{ col.get('missing_rate', 'N/A') }}% missing - <em>{{ col.get('recommendation', 'No recommendation') }}</em>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Detailed Column Analysis -->
+        {% set column_profiles = profile_data.get('column_profiles', {}) %}
+        {% if column_profiles %}
+        <div class="section">
+            <h2>📊 Detailed Column Analysis</h2>
+            <p style="color: #6c757d; margin-bottom: 1.5rem;">Comprehensive statistics for each column with explanations and recommendations.</p>
+            
+            {% for col_name, col_data in column_profiles.items() %}
+            <div class="column-card">
+                <div class="column-header">
+                    <div class="column-title">{{ col_name }}</div>
+                    {% set basic_info = col_data.get('basic_info', {}) %}
+                    <div class="column-type">{{ basic_info.get('data_type', 'Unknown') }}</div>
+                </div>
+                
+                {% if basic_info %}
+                <!-- Basic Statistics -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ "{:,}".format(basic_info.get('non_null_count', 0)) }}</div>
+                        <div class="stat-label">Non-Null Count</div>
+                        <div class="stat-explanation">Valid data points</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ basic_info.get('null_percentage', 0) }}%</div>
+                        <div class="stat-label">Missing %</div>
+                        <div class="stat-explanation">{{ basic_info.get('null_count', 0) }} missing values</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ "{:,}".format(basic_info.get('unique_count', 0)) }}</div>
+                        <div class="stat-label">Unique Values</div>
+                        <div class="stat-explanation">{{ basic_info.get('unique_percentage', 0) }}% uniqueness</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">
+                            {% if basic_info.get('is_constant') %}
+                            <span class="quality-indicator quality-poor">Constant</span>
+                            {% elif basic_info.get('is_unique') %}
+                            <span class="quality-indicator quality-excellent">Unique</span>
+                            {% else %}
+                            <span class="quality-indicator quality-good">Variable</span>
+                            {% endif %}
+                        </div>
+                        <div class="stat-label">Data Pattern</div>
+                        <div class="stat-explanation">Value distribution type</div>
+                    </div>
+                </div>
+
+                <!-- Explanations -->
+                {% set explanations = col_data.get('explanations', {}) %}
+                {% if explanations %}
+                <div class="explanation-box">
+                    <div class="explanation-title">💡 What This Tells Us:</div>
+                    <p><strong>Data Quality:</strong> {{ explanations.get('data_quality', 'No assessment available') }}</p>
+                    <p><strong>Uniqueness Pattern:</strong> {{ explanations.get('uniqueness', 'No pattern identified') }}</p>
+                    {% if explanations.get('null_percentage') %}
+                    <p><strong>Missing Data Impact:</strong> {{ explanations.null_percentage }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Numeric Statistics -->
+                {% set numeric_stats = col_data.get('numeric_stats') %}
+                {% if numeric_stats and numeric_stats is mapping and 'error' not in numeric_stats %}
+                <h4 style="color: #2c3e50; margin: 1.5rem 0 1rem 0;">📈 Numeric Statistics</h4>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ numeric_stats.get('min', 'N/A') if numeric_stats.get('min') is not none else 'N/A' }}</div>
+                        <div class="stat-label">Minimum</div>
+                        <div class="stat-explanation">Smallest value in dataset</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ numeric_stats.get('max', 'N/A') if numeric_stats.get('max') is not none else 'N/A' }}</div>
+                        <div class="stat-label">Maximum</div>
+                        <div class="stat-explanation">Largest value in dataset</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ numeric_stats.get('mean', 'N/A') if numeric_stats.get('mean') is not none else 'N/A' }}</div>
+                        <div class="stat-label">Mean</div>
+                        <div class="stat-explanation">Average of all values</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ numeric_stats.get('median', 'N/A') if numeric_stats.get('median') is not none else 'N/A' }}</div>
+                        <div class="stat-label">Median</div>
+                        <div class="stat-explanation">Middle value (50th percentile)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ numeric_stats.get('std_dev', 'N/A') if numeric_stats.get('std_dev') is not none else 'N/A' }}</div>
+                        <div class="stat-label">Std Deviation</div>
+                        <div class="stat-explanation">Measure of value spread</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ numeric_stats.get('outliers_count', 'N/A') if numeric_stats.get('outliers_count') is not none else 'N/A' }}</div>
+                        <div class="stat-label">Outliers</div>
+                        <div class="stat-explanation">Unusually high/low values</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Most Common Values -->
+                {% set most_common = col_data.get('most_common_values', {}) %}
+                {% if most_common and most_common.get('values') %}
+                <h4 style="color: #2c3e50; margin: 1.5rem 0 1rem 0;">🔝 Most Frequent Values</h4>
+                <div class="explanation-box">
+                    <div class="explanation-title">{{ most_common.get('explanation', 'Most common values in this column') }}</div>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Value</th>
+                            <th>Count</th>
+                            <th>Percentage</th>
+                            <th>Frequency Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in most_common.get('values', [])[:5] %}
+                        <tr>
+                            <td><strong>{{ item.get('value', 'N/A') }}</strong></td>
+                            <td>{{ "{:,}".format(item.get('count', 0)) }}</td>
+                            <td>{{ item.get('percentage', 0) }}%</td>
+                            <td><em>{{ item.get('interpretation', 'N/A') }}</em></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                <!-- DateTime Statistics -->
+                {% set datetime_stats = col_data.get('datetime_stats') %}
+                {% if datetime_stats and datetime_stats is mapping and 'error' not in datetime_stats %}
+                <h4 style="color: #2c3e50; margin: 1.5rem 0 1rem 0;">📅 Date/Time Analysis</h4>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ datetime_stats.get('earliest_date', 'N/A')[:10] if datetime_stats.get('earliest_date') else 'N/A' }}</div>
+                        <div class="stat-label">Earliest Date</div>
+                        <div class="stat-explanation">First chronological entry</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ datetime_stats.get('latest_date', 'N/A')[:10] if datetime_stats.get('latest_date') else 'N/A' }}</div>
+                        <div class="stat-label">Latest Date</div>
+                        <div class="stat-explanation">Most recent entry</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ datetime_stats.get('date_range_days', 'N/A') }}</div>
+                        <div class="stat-label">Range (Days)</div>
+                        <div class="stat-explanation">Time span covered</div>
+                    </div>
+                </div>
+
+                {% set year_range = datetime_stats.get('year_range') %}
+                {% if year_range %}
+                <div class="explanation-box">
+                    <div class="explanation-title">📊 Time-based Trends:</div>
+                    <p><strong>Years Covered:</strong> {{ year_range | join(' - ') }}</p>
+                </div>
+                {% endif %}
+                {% endif %}
+
+                <!-- Text Statistics -->
+                {% set text_stats = col_data.get('text_stats') %}
+                {% if text_stats and 'error' not in text_stats %}
+                <h4 style="color: #2c3e50; margin: 1.5rem 0 1rem 0;">📝 Text Analysis</h4>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ text_stats.get('avg_length', 'N/A') }}</div>
+                        <div class="stat-label">Average Length</div>
+                        <div class="stat-explanation">Mean character count</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ text_stats.get('min_length', 'N/A') }} - {{ text_stats.get('max_length', 'N/A') }}</div>
+                        <div class="stat-label">Length Range</div>
+                        <div class="stat-explanation">Min to max characters</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ text_stats.get('empty_strings', 'N/A') }}</div>
+                        <div class="stat-label">Empty Strings</div>
+                        <div class="stat-explanation">Blank text entries</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Recommendations -->
+                {% set recommendations = col_data.get('recommendations', []) %}
+                {% if recommendations %}
+                <div class="alert alert-info">
+                    <strong>🎯 Recommendations for {{ col_name }}:</strong>
+                    <ul style="margin: 0.5rem 0 0 0;">
+                        {% for rec in recommendations %}
+                        <li style="margin-bottom: 0.3rem;">{{ rec }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if col_data.get('error') %}
+                <div class="alert alert-warning">
+                    <strong>⚠️ Analysis Error:</strong> {{ col_data.error }}
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Correlation Analysis -->
+        {% set relationships = profile_data.get('relationships', {}) %}
+        {% if relationships and relationships.get('high_correlations') %}
+        <div class="section">
+            <h2>🔗 Correlation Analysis</h2>
+            <div class="explanation-box">
+                <div class="explanation-title">📊 Understanding Correlations:</div>
+                <p>Correlation measures linear relationships between numeric variables. Values close to +1 or -1 indicate strong relationships, while values near 0 suggest weak relationships.</p>
+            </div>
+            
+            <h3>🔥 Strong Correlations (|r| > 0.7)</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Variable 1</th>
+                        <th>Variable 2</th>
+                        <th>Correlation</th>
+                        <th>Strength</th>
+                        <th>Interpretation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for corr in relationships.high_correlations %}
+                    <tr>
+                        <td><strong>{{ corr.get('column1', 'N/A') }}</strong></td>
+                        <td><strong>{{ corr.get('column2', 'N/A') }}</strong></td>
+                        <td class="correlation-cell 
+                            {% set corr_val = corr.get('correlation', 0) %}
+                            {% if corr_val|abs > 0.9 %}correlation-strong
+                            {% elif corr_val|abs > 0.7 %}correlation-moderate
+                            {% endif %}">
+                            {{ corr_val }}
+                        </td>
+                        <td>
+                            {% if corr_val|abs > 0.9 %}
+                                <span class="quality-indicator quality-poor">Very Strong</span>
+                            {% elif corr_val|abs > 0.7 %}
+                                <span class="quality-indicator quality-warning">Strong</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if corr_val > 0.7 %}
+                                <em>Positive relationship - as one increases, the other tends to increase</em>
+                            {% elif corr_val < -0.7 %}
+                                <em>Negative relationship - as one increases, the other tends to decrease</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% elif relationships %}
+        <div class="section">
+            <h2>🔗 Correlation Analysis</h2>
+            <div class="alert alert-success">
+                <strong>✅ No Strong Correlations Detected:</strong> No correlations above 0.7 found between numeric columns. This suggests low multicollinearity, which is generally good for analysis and modeling.
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Duplicate Analysis -->
+        {% set duplicates = profile_data.get('duplicates', {}) %}
+        {% if duplicates %}
+        <div class="section">
+            <h2>🔄 Duplicate Row Analysis</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ "{:,}".format(duplicates.get('duplicate_rows_count', 0)) }}</div>
+                    <div class="stat-label">Duplicate Rows</div>
+                    <div class="stat-explanation">Exact row matches found</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ duplicates.get('duplicate_rows_percentage', 0) }}%</div>
+                    <div class="stat-label">Duplicate Rate</div>
+                    <div class="stat-explanation">Percentage of total rows</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ "{:,}".format(duplicates.get('unique_rows_count', 0)) }}</div>
+                    <div class="stat-label">Unique Rows</div>
+                    <div class="stat-explanation">Distinct records</div>
+                </div>
+            </div>
+
+            {% if duplicates.get('duplicate_rows_count', 0) > 0 %}
+            <div class="alert alert-warning">
+                <strong>⚠️ Duplicates Detected:</strong> {{ duplicates.duplicate_rows_count }} duplicate rows found ({{ duplicates.duplicate_rows_percentage }}% of data). Consider investigating whether these are intentional or data quality issues.
+            </div>
+            {% else %}
+            <div class="alert alert-success">
+                <strong>✅ No Duplicates:</strong> All rows in the dataset are unique - excellent data quality!
+            </div>
+            {% endif %}
+
+            {% set potential_id_columns = duplicates.get('potential_id_columns', []) %}
+            {% if potential_id_columns %}
+            <h3>🆔 Potential Identifier Columns</h3>
+            <div class="explanation-box">
+                <div class="explanation-title">💡 Understanding Identifiers:</div>
+                <p>These columns have very high uniqueness (>95%) and might serve as record identifiers or have special significance:</p>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Column Name</th>
+                        <th>Uniqueness Rate</th>
+                        <th>Likely Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for col in potential_id_columns %}
+                    <tr>
+                        <td><strong>{{ col.get('column', 'N/A') }}</strong></td>
+                        <td>{{ col.get('uniqueness_rate', 'N/A') }}%</td>
+                        <td>
+                            {% if col.get('uniqueness_rate', 0) == 100 %}
+                            <em>Perfect identifier - each row has unique value</em>
+                            {% else %}
+                            <em>Near-unique - mostly distinct values</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Actionable Recommendations -->
+        {% set recommendations = profile_data.get('recommendations', []) %}
+        {% if recommendations %}
+        <div class="section">
+            <h2>💡 Actionable Recommendations</h2>
+            <p style="color: #6c757d; margin-bottom: 1.5rem;">Based on comprehensive data analysis, here are specific recommendations to improve your dataset:</p>
+            
+            {% for rec in recommendations %}
+            <div class="alert 
+                {% if rec.get('priority') == 'High' %}alert-warning
+                {% else %}alert-info{% endif %}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                    <strong style="font-size: 1.1rem;">{{ rec.get('category', 'General') }}</strong>
+                    <span class="quality-indicator 
+                        {% if rec.get('priority') == 'High' %}quality-poor
+                        {% elif rec.get('priority') == 'Medium' %}quality-warning
+                        {% else %}quality-good{% endif %}">
+                        {{ rec.get('priority', 'Medium') }} Priority
+                    </span>
+                </div>
+                <p style="margin: 0.5rem 0; font-weight: 600; color: #2c3e50;">{{ rec.get('recommendation', 'No recommendation') }}</p>
+                <p style="margin: 0; font-size: 0.95rem; color: #495057;">{{ rec.get('details', 'No details available') }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="alert alert-warning">
+            <strong>⚠️ No Profile Data Available</strong>
+            <p>Unable to generate profile report. Please check your data and try again.</p>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div style="text-align: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #e9ecef;">
+            <a href="/" class="btn btn-secondary">🏠 Return to Dashboard</a>
+            <a href="/chat" class="btn btn-success">💬 Ask Questions About Data</a>
+            <a href="/visualize" class="btn btn-warning">📊 Create Custom Charts</a>
+        </div>
+    </div>
+
+    <script>
+        // Add any additional JavaScript for interactivity
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add smooth scrolling
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Profiling App - Smart Data Analysis</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            background: white; 
+            padding: 0; 
+            border-radius: 16px; 
+            max-width: 1000px; 
+            margin: 0 auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0 0 1rem 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .header p {
+            margin: 0;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        /* NEW: Dataset Selection Section */
+        .dataset-selection {
+            padding: 2rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .selection-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        .dataset-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .dataset-option {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .dataset-option:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+        .dataset-option.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #f0f4ff 0%, #e8f2ff 100%);
+        }
+        .option-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .option-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        .option-description {
+            color: #6c757d;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+        }
+        .option-status {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+        .status-available { background: #d4edda; color: #155724; }
+        .status-not-loaded { background: #fff3cd; color: #856404; }
+        
+        /* NEW: Current Selection Display */
+        .current-selection {
+            background: #e8f4f8;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 4px solid #17a2b8;
+        }
+        .current-selection h4 {
+            margin: 0 0 0.5rem 0;
+            color: #0c5460;
+        }
+        
+        /* NEW: MIMIC-III Tables Grid */
+        .mimic-tables {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            border: 1px solid #e9ecef;
+            display: none;
+        }
+        .mimic-tables.show {
+            display: block;
+        }
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .table-card {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .table-card:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: translateY(-2px);
+        }
+        .table-card.selected {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        .table-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        .table-description {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+        .table-stats {
+            font-size: 0.8rem;
+            color: #495057;
+        }
+        
+        /* EXISTING: Upload section styles */
+        .upload-section {
+            padding: 2rem;
+            display: none;
+        }
+        .upload-section.show {
+            display: block;
+        }
+        .upload-box { 
+            border: 3px dashed #dee2e6; 
+            padding: 3rem 2rem; 
+            text-align: center; 
+            margin: 2rem 0; 
+            border-radius: 12px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        .upload-box:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .upload-box.dragover {
+            border-color: #667eea;
+            background: #e3f2fd;
+            transform: scale(1.02);
+        }
+        .upload-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+        .upload-subtitle {
+            color: #6c757d;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        .file-input-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        .file-input-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .upload-btn {
+            background: #28a745;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.2s;
+        }
+        .upload-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        .upload-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* EXISTING: Styles for flash messages and other components */
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+            padding: 1rem 1.5rem; 
+            border-radius: 8px; 
+            margin: 1rem 0; 
+            border: 1px solid #c3e6cb;
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            padding: 1rem 1.5rem; 
+            border-radius: 8px; 
+            margin: 1rem 0; 
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border: 1px solid #bee5eb;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        .action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.2rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .action-btn .icon {
+            font-size: 1.2rem;
+            margin-right: 0.5rem;
+        }
+        .btn-profile {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        .btn-profile:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+        }
+        .btn-chat {
+            background: linear-gradient(135deg, #007bff 0%, #6f42c1 100%);
+            color: white;
+        }
+        .btn-chat:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
+        }
+        .btn-visualize {
+            background: linear-gradient(135deg, #fd7e14 0%, #e83e8c 100%);
+            color: white;
+        }
+        .btn-visualize:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(253, 126, 20, 0.4);
+        }
+        
+        /* EXISTING: Features section for when no data selected */
+        .features-section {
+            padding: 2rem;
+            background: white;
+        }
+        .features-title {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2rem;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .feature-card {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        .feature-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        .feature-description {
+            color: #6c757d;
+            line-height: 1.5;
+        }
+        
+        .file-info {
+            background: #e3f2fd;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: none;
+        }
+        .file-info.show {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 12px;
+            }
+            .header {
+                padding: 2rem 1rem;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .dataset-options {
+                grid-template-columns: 1fr;
+            }
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Data Profiling App</h1>
+            <p>Smart AI-powered data analysis with MIMIC-III demo data support</p>
+        </div>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div style="padding: 1rem 2rem;">
+                    {% for category, message in messages %}
+                        <div class="{{ category }}">
+                            <strong>
+                                {% if category == 'success' %}✅
+                                {% elif category == 'error' %}❌
+                                {% elif category == 'warning' %}⚠️
+                                {% elif category == 'info' %}ℹ️
+                                {% else %}ℹ️{% endif %}
+                            </strong>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        <!-- NEW: Current Selection Display -->
+        {% if current_table %}
+        <div class="current-selection">
+            <h4>📊 Currently Selected: {{ current_table }}</h4>
+            <p>
+                <strong>Source:</strong> 
+                {% if current_mode == 'mimic' %}
+                    🏥 MIMIC-III Demo Data
+                {% elif current_mode == 'uploaded' %}
+                    📁 User Uploaded Data
+                {% else %}
+                    Unknown
+                {% endif %}
+                {% if data_info %}
+                    | <strong>Rows:</strong> {{ "{:,}".format(data_info.row_count) }} 
+                    | <strong>Columns:</strong> {{ data_info.column_count }}
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+        
+        <!-- NEW: Dataset Selection -->
+        <div class="dataset-selection">
+            <h2 class="selection-title">Choose Your Data Source</h2>
+            
+            <div class="dataset-options">
+                <!-- Upload Option -->
+                <div class="dataset-option" id="uploadOption" onclick="selectDatasetMode('upload')">
+                    <div class="option-icon">📁</div>
+                    <div class="option-title">Upload Your Data</div>
+                    <div class="option-description">
+                        Upload your own CSV file for custom analysis and profiling
+                    </div>
+                    <div class="option-status status-available">Always Available</div>
+                </div>
+                
+                <!-- MIMIC-III Option -->
+                <div class="dataset-option" id="mimicOption" onclick="selectDatasetMode('mimic')">
+                    <div class="option-icon">🏥</div>
+                    <div class="option-title">MIMIC-III Demo Data</div>
+                    <div class="option-description">
+                        Explore pre-loaded clinical database with patient records, admissions, and medical events
+                    </div>
+                    <div class="option-status" id="mimicStatus">
+                        {% if datasets.has_mimic %}
+                            <span class="status-available">{{ datasets.mimic|length }} Tables Available</span>
+                        {% else %}
+                            <span class="status-not-loaded">Click to Load</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- NEW: MIMIC-III Tables Section -->
+            <div class="mimic-tables" id="mimicTables">
+                <h3>🏥 Available MIMIC-III Tables</h3>
+                <p>Select a table to begin analysis:</p>
+                
+                <div class="tables-grid" id="tablesGrid">
+                    {% for table in datasets.mimic %}
+                    <div class="table-card" onclick="selectTable('{{ table.table_name }}')" 
+                         {% if current_table == table.table_name %}class="table-card selected"{% endif %}>
+                        <div class="table-name">{{ table.table_name.upper() }}</div>
+                        <div class="table-description">{{ table.description }}</div>
+                        <div class="table-stats">
+                            {{ "{:,}".format(table.row_count) }} rows, {{ table.column_count }} columns
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if not datasets.has_mimic %}
+                <div style="text-align: center; padding: 2rem;">
+                    <p>MIMIC-III data not loaded yet.</p>
+                    <form method="POST" action="/load-mimic" style="display: inline;">
+                        <button type="submit" class="upload-btn">
+                            🚀 Load MIMIC-III Demo Data
+                        </button>
+                    </form>
+                    <p style="font-size: 0.9rem; color: #6c757d; margin-top: 1rem;">
+                        This will load sample clinical data for demonstration purposes.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- EXISTING: Upload Section -->
+        <div class="upload-section" id="uploadSection">
+            <div class="upload-box" id="uploadBox">
+                <div class="upload-title">📂 Upload Your Dataset</div>
+                <div class="upload-subtitle">Drag and drop a CSV file or click to browse</div>
+                
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <div class="file-input-wrapper">
+                        <input type="file" name="file" accept=".csv" required class="file-input" id="fileInput">
+                        <label for="fileInput" class="file-input-button">
+                            📁 Choose CSV File
+                        </label>
+                    </div>
+                    
+                    <div class="file-info" id="fileInfo">
+                        <strong>Selected file:</strong> <span id="fileName"></span><br>
+                        <strong>Size:</strong> <span id="fileSize"></span>
+                    </div>
+                    
+                    <br>
+                    <button type="submit" class="upload-btn" id="uploadBtn" disabled>
+                        🚀 Upload & Analyze
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        {% if current_table %}
+        <div style="padding: 2rem;">
+            <div class="action-buttons">
+                <a href="/profile" class="action-btn btn-profile">
+                    <span class="icon">📊</span>
+                    Generate Profile Report
+                </a>
+                <a href="/chat" class="action-btn btn-chat">
+                    <span class="icon">💬</span>
+                    Chat with Data
+                </a>
+                <a href="/visualize" class="action-btn btn-visualize">
+                    <span class="icon">📈</span>
+                    Create Visualizations
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <!-- EXISTING: Features Section -->
+        <div class="features-section">
+            <h2 class="features-title">🚀 Powerful Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">Automated Profiling</div>
+                    <div class="feature-description">
+                        Generate comprehensive reports with statistics, quality assessment, and smart visualizations
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-title">AI Chat Interface</div>
+                    <div class="feature-description">
+                        Ask questions about your data in natural language and get detailed, structured answers
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-title">Custom Visualizations</div>
+                    <div class="feature-description">
+                        Create interactive charts and graphs with AI-powered suggestions for best practices
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏥</div>
+                    <div class="feature-title">MIMIC-III Demo Data</div>
+                    <div class="feature-description">
+                        Explore real clinical data with patient records, admissions, and medical events for learning
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <div class="feature-title">Quality Analysis</div>
+                    <div class="feature-description">
+                        Detect missing values, outliers, duplicates, and get actionable recommendations
+                    </div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-title">Instant Analysis</div>
+                    <div class="feature-description">
+                        Upload CSV files and get immediate insights with professional-grade statistical analysis
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        let currentMode = '{{ current_mode }}' || 'none';
+        
+        function selectDatasetMode(mode) {
+            // Update visual selection
+            document.querySelectorAll('.dataset-option').forEach(opt => opt.classList.remove('active'));
+            
+            if (mode === 'upload') {
+                document.getElementById('uploadOption').classList.add('active');
+                document.getElementById('uploadSection').classList.add('show');
+                document.getElementById('mimicTables').classList.remove('show');
+            } else if (mode === 'mimic') {
+                document.getElementById('mimicOption').classList.add('active');
+                document.getElementById('uploadSection').classList.remove('show');
+                document.getElementById('mimicTables').classList.add('show');
+            }
+            
+            currentMode = mode;
+        }
+        
+        function selectTable(tableName) {
+            window.location.href = `/select-table/${tableName}`;
+        }
+        
+        // Initialize based on current mode
+        if (currentMode === 'upload' || currentMode === 'uploaded') {
+            selectDatasetMode('upload');
+        } else if (currentMode === 'mimic') {
+            selectDatasetMode('mimic');
+        }
+        
+        // EXISTING: File handling code - unchanged
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const uploadBox = document.getElementById('uploadBox');
+
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    fileName.textContent = file.name;
+                    fileSize.textContent = formatFileSize(file.size);
+                    fileInfo.classList.add('show');
+                    uploadBtn.disabled = false;
+                    
+                    if (!file.name.toLowerCase().endsWith('.csv')) {
+                        alert('Please select a CSV file.');
+                        resetFileInput();
+                    }
+                } else {
+                    resetFileInput();
+                }
+            });
+
+            uploadBox.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadBox.classList.add('dragover');
+            });
+
+            uploadBox.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                uploadBox.classList.remove('dragover');
+            });
+
+            uploadBox.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadBox.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.name.toLowerCase().endsWith('.csv')) {
+                        fileInput.files = files;
+                        fileInput.dispatchEvent(new Event('change'));
+                    } else {
+                        alert('Please drop a CSV file.');
+                    }
+                }
+            });
+        }
+
+        function resetFileInput() {
+            if (fileInfo) fileInfo.classList.remove('show');
+            if (uploadBtn) uploadBtn.disabled = true;
+            if (fileName) fileName.textContent = '';
+            if (fileSize) fileSize.textContent = '';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Form submission handling
+        if (document.getElementById('uploadForm')) {
+            document.getElementById('uploadForm').addEventListener('submit', function(e) {
+                if (uploadBtn) {
+                    uploadBtn.textContent = '⏳ Uploading...';
+                    uploadBtn.disabled = true;
+                }
+            });
+        }
+
+        // Auto-hide flash messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const messages = document.querySelectorAll('.success, .warning, .info');
+            messages.forEach(function(message) {
+                setTimeout(function() {
+                    message.style.opacity = '0';
+                    setTimeout(function() {
+                        message.style.display = 'none';
+                    }, 300);
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+</html>
